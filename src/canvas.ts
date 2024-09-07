@@ -68,13 +68,66 @@ void main() {
 }`
 ) as WebGLShader;
 
-var program = gl.createProgram()!;
+const program = gl.createProgram()!;
 
 gl.attachShader(program, vertexShader);
 gl.attachShader(program, fragmentShader);
 gl.linkProgram(program);
-var success = gl.getProgramParameter(program, gl.LINK_STATUS);
+const success = gl.getProgramParameter(program, gl.LINK_STATUS);
 if (!success) {
     console.log(gl.getProgramInfoLog(program));
     gl.deleteProgram(program);
 }
+
+const positionAttributeLocation = gl.getAttribLocation(program, "a_position");
+const positionBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+
+const positions = new Float32Array([
+    0.0, 0.0,
+    0.0, 0.5,
+    0.7, 0.0
+]);
+gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+const vao = gl.createVertexArray();
+
+gl.bindVertexArray(vao);
+gl.enableVertexAttribArray(positionAttributeLocation);
+gl.vertexAttribPointer(
+    positionAttributeLocation,
+    2,         // 2 components per iteration
+    gl.FLOAT,  // the type of data - 32 bit float
+    false,     // don't normalize data
+    0,         // no need to additionally stride data
+    0,         // offset to begin
+);
+
+function resizeCanvasToDisplaySize(
+    canvas: HTMLCanvasElement,
+    multiplier: number,
+): boolean {
+    multiplier = multiplier || 1;
+    const width = canvas.clientWidth * multiplier | 0;
+    const height = canvas.clientHeight * multiplier | 0;
+
+    if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
+        return true;
+    }
+
+    return false;
+};
+
+gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+gl.clearColor(0, 0, 0, 0);
+gl.clear(gl.COLOR_BUFFER_BIT);
+resizeCanvasToDisplaySize(gl.canvas as HTMLCanvasElement, 1);
+gl.useProgram(program);
+
+// gl.bindVertexArray(vao);
+
+const primitiveType = gl.TRIANGLES;
+const offset = 0;
+const count = 3;
+gl.drawArrays(primitiveType, offset, count);
