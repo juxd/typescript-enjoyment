@@ -1,14 +1,12 @@
 const existingCanvas: HTMLCanvasElement | null = document.querySelector("#canvas");
 
-declare var canvas: HTMLCanvasElement;
-
 if (existingCanvas == null) {
     const newCanvas = document.createElement("canvas");
     newCanvas.id = "canvas";
     document.body.appendChild(newCanvas);
-    canvas = newCanvas;
+    var canvas = newCanvas;
 } else {
-    canvas = existingCanvas
+    var canvas = existingCanvas;
 }
 
 const gl = canvas.getContext("webgl2")!;
@@ -56,15 +54,16 @@ const fragmentShader = createShader(
     gl.FRAGMENT_SHADER,
     `#version 300 es
 
-// an attribute will receive data from a buffer
-attribute vec4 a_position;
+// fragment shaders don't have a default precision so we need
+// to pick one. highp is a good default. It means "high precision"
+precision highp float;
 
-// all shaders have a main function
+// we need to declare an output for the fragment shader
+out vec4 outColor;
+
 void main() {
-
-  // gl_Position is a special variable a vertex shader
-  // is responsible for setting
-  gl_Position = a_position;
+// Just set the output to a constant redish-purple
+outColor = vec4(1, 0, 0.5, 1);
 }`
 ) as WebGLShader;
 
@@ -125,9 +124,4 @@ gl.clear(gl.COLOR_BUFFER_BIT);
 resizeCanvasToDisplaySize(gl.canvas as HTMLCanvasElement, 1);
 gl.useProgram(program);
 
-// gl.bindVertexArray(vao);
-
-const primitiveType = gl.TRIANGLES;
-const offset = 0;
-const count = 3;
-gl.drawArrays(primitiveType, offset, count);
+gl.drawArrays(gl.TRIANGLES, 0, 3);
