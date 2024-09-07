@@ -1,0 +1,11 @@
+{
+    "compilerOptions": {
+        "module": "nodenext",
+        "noImplicitAny": true,
+        "strict": true,
+        "removeComments": true,
+        "sourceMap": true,
+        "verbatimModuleSyntax": true
+    },
+    "include": ["src/**/*"]
+}
