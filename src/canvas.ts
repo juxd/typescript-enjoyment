@@ -82,7 +82,7 @@ const positionAttributeLocation = gl.getAttribLocation(program, "a_position");
 const positionBuffer = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
 
-const positions = new Float32Array([
+var positions = new Float32Array([
     0.0, 0.0,
     0.0, 0.5,
     0.7, 0.0
@@ -125,3 +125,75 @@ resizeCanvasToDisplaySize(gl.canvas as HTMLCanvasElement, 1);
 gl.useProgram(program);
 
 gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+// MATHEMATICS
+
+type vector4 = [number, number, number, number];
+
+function vector4(x: number, y: number, z: number): vector4 {
+    return [x, y, z, 1];
+}
+
+type matrix44 = [number, number, number, number,
+    number, number, number, number,
+    number, number, number, number,
+    number, number, number, number]
+    ;
+
+function translateBy(x: number, y: number, z: number) {
+    return [
+        1, 0, 0, x,
+        0, 1, 0, y,
+        0, 0, 1, z,
+        0, 0, 0, 1
+    ];
+}
+
+function apply(m: matrix44, v: vector4): vector4 {
+    function calculateRow(x: number): number {
+        var r = 0;
+        for (var y of [0, 1, 2, 3]) {
+            r += m[x * 4 + y] * v[y];
+        }
+        return r;
+    }
+    return [0, 1, 2, 3].map(calculateRow) as vector4;
+}
+
+// MOUSE HANDLING
+
+type mouseState =
+    { clicked: true; startX: number; startY: number }
+    | { clicked: false }
+    ;
+
+var mouseState: mouseState = { clicked: false };
+var totalDisplacement: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 };
+
+function onMouseUp() {
+    if (!mouseState.clicked) {
+        return;
+    }
+    totalDisplacement = { x: 0, y: 0, z: 0 };
+    mouseState = { clicked: false };
+}
+
+function onMouseMove(clientX: number, clientY: number) {
+    if (!mouseState.clicked) {
+        return;
+    } else {
+        totalDisplacement.x = clientX - mouseState.startX;
+        totalDisplacement.y = clientY - mouseState.startY;
+    }
+}
+
+function onMouseDown(clientX: number, clientY: number) {
+    if (mouseState.clicked) {
+        return
+    }
+    mouseState = {
+        clicked: true,
+        startX: clientX,
+        startY: clientY
+    };
+}
