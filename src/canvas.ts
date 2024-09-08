@@ -197,3 +197,11 @@ function onMouseDown(clientX: number, clientY: number) {
         startY: clientY
     };
 }
+
+canvas.addEventListener("mousedown", (event) =>
+    onMouseDown(event.clientX, event.clientY));
+canvas.addEventListener("mousemove", (event) =>
+    onMouseMove(event.clientX, event.clientY));
+canvas.addEventListener("mouseup", (_) => onMouseUp());
+
+// actual loop
