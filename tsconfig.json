@@ -1,12 +1,12 @@
 {
     "compilerOptions": {
-        "target": "es2016",
+        "target": "es2019",
         "module": "commonjs",
         "noImplicitAny": true,
         "strict": true,
         "removeComments": true,
         "sourceMap": true,
-        "verbatimModuleSyntax": true
+        "verbatimModuleSyntax": true,
     },
     "include": ["src/**/*"]
 }

@@ -1,3 +1,39 @@
+// MATHEMATICS
+
+type vector4 = [number, number, number, number];
+
+function vector4(x: number, y: number, z: number): vector4 {
+    return [x, y, z, 1];
+}
+
+type matrix44 = [number, number, number, number,
+    number, number, number, number,
+    number, number, number, number,
+    number, number, number, number]
+    ;
+
+function translateBy(x: number, y: number, z: number): matrix44 {
+    return [
+        1, 0, 0, x,
+        0, 1, 0, y,
+        0, 0, 1, z,
+        0, 0, 0, 1
+    ];
+}
+
+function apply(m: matrix44, v: vector4): vector4 {
+    function calculateRow(x: number): number {
+        var r = 0;
+        for (var y of [0, 1, 2, 3]) {
+            r += m[x * 4 + y] * v[y];
+        }
+        return r;
+    }
+    return [0, 1, 2, 3].map(calculateRow) as vector4;
+}
+
+// main actually?
+
 const existingCanvas: HTMLCanvasElement | null = document.querySelector("#canvas");
 
 if (existingCanvas == null) {
@@ -79,18 +115,13 @@ if (!success) {
 }
 
 const positionAttributeLocation = gl.getAttribLocation(program, "a_position");
+
 const positionBuffer = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
 
-var positions = new Float32Array([
-    0.0, 0.0,
-    0.0, 0.5,
-    0.7, 0.0
-]);
-gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
 const vao = gl.createVertexArray();
-
 gl.bindVertexArray(vao);
+
 gl.enableVertexAttribArray(positionAttributeLocation);
 gl.vertexAttribPointer(
     positionAttributeLocation,
@@ -103,7 +134,7 @@ gl.vertexAttribPointer(
 
 function resizeCanvasToDisplaySize(
     canvas: HTMLCanvasElement,
-    multiplier: number,
+    multiplier: number | null,
 ): boolean {
     multiplier = multiplier || 1;
     const width = canvas.clientWidth * multiplier | 0;
@@ -124,57 +155,25 @@ gl.clear(gl.COLOR_BUFFER_BIT);
 resizeCanvasToDisplaySize(gl.canvas as HTMLCanvasElement, 1);
 gl.useProgram(program);
 
-gl.drawArrays(gl.TRIANGLES, 0, 3);
-
-// MATHEMATICS
-
-type vector4 = [number, number, number, number];
-
-function vector4(x: number, y: number, z: number): vector4 {
-    return [x, y, z, 1];
-}
-
-type matrix44 = [number, number, number, number,
-    number, number, number, number,
-    number, number, number, number,
-    number, number, number, number]
-    ;
-
-function translateBy(x: number, y: number, z: number) {
-    return [
-        1, 0, 0, x,
-        0, 1, 0, y,
-        0, 0, 1, z,
-        0, 0, 0, 1
-    ];
-}
-
-function apply(m: matrix44, v: vector4): vector4 {
-    function calculateRow(x: number): number {
-        var r = 0;
-        for (var y of [0, 1, 2, 3]) {
-            r += m[x * 4 + y] * v[y];
-        }
-        return r;
-    }
-    return [0, 1, 2, 3].map(calculateRow) as vector4;
-}
-
 // MOUSE HANDLING
 
 type mouseState =
-    { clicked: true; startX: number; startY: number }
+    {
+        clicked: true;
+        startX: number;
+        startY: number;
+        clientX: number;
+        clientY: number
+    }
     | { clicked: false }
     ;
 
 var mouseState: mouseState = { clicked: false };
-var totalDisplacement: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 };
 
 function onMouseUp() {
     if (!mouseState.clicked) {
         return;
     }
-    totalDisplacement = { x: 0, y: 0, z: 0 };
     mouseState = { clicked: false };
 }
 
@@ -182,8 +181,8 @@ function onMouseMove(clientX: number, clientY: number) {
     if (!mouseState.clicked) {
         return;
     } else {
-        totalDisplacement.x = clientX - mouseState.startX;
-        totalDisplacement.y = clientY - mouseState.startY;
+        mouseState.clientX = clientX;
+        mouseState.clientY = clientY;
     }
 }
 
@@ -194,14 +193,64 @@ function onMouseDown(clientX: number, clientY: number) {
     mouseState = {
         clicked: true,
         startX: clientX,
-        startY: clientY
+        startY: clientY,
+        clientX,
+        clientY,
     };
 }
 
-canvas.addEventListener("mousedown", (event) =>
-    onMouseDown(event.clientX, event.clientY));
-canvas.addEventListener("mousemove", (event) =>
-    onMouseMove(event.clientX, event.clientY));
-canvas.addEventListener("mouseup", (_) => onMouseUp());
+canvas.addEventListener("mousedown", (event) => {
+    console.log("mouse move", event.clientX, event.clientY);
+    onMouseDown(event.clientX, event.clientY)
+});
+canvas.addEventListener("mousemove", (event) => {
+    if (mouseState.clicked) {
+        console.log(
+            "mouse move",
+            mouseState.startX,
+            mouseState.startY,
+            event.clientX,
+            event.clientY,
+        );
+    }
+    onMouseMove(event.clientX, event.clientY);
+});
+canvas.addEventListener("mouseup", (_) => {
+    console.log("mouse up");
+    onMouseUp();
+});
+
+const originalPositions = [
+    vector4(0.0, 0.0, 0.0),
+    vector4(0.0, 0.5, 0.0),
+    vector4(0.7, 0.0, 0.0)
+];
 
 // actual loop
+function loop(_: number) {
+    let positions = undefined;
+
+    // process updates for this frame
+    if (mouseState.clicked) {
+        const displacement = translateBy(
+            (mouseState.clientX - mouseState.startX) / canvas.width * 2,
+            (mouseState.startY - mouseState.clientY) / canvas.height * 2,
+            0
+        );
+
+        positions = originalPositions.map((pos) => apply(displacement, pos));
+    } else {
+        positions = originalPositions;
+    }
+    // animate the frame
+
+    var positionsF32 = new Float32Array(positions.flatMap((v) => [v[0], v[1]]));
+    gl.bufferData(gl.ARRAY_BUFFER, positionsF32, gl.STATIC_DRAW);
+
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+    // loop
+    window.requestAnimationFrame(loop);
+}
+
+window.requestAnimationFrame(loop);
